@@ -132,7 +132,9 @@ else:
         **Objetivo:** Identificar transacciones inusuales que puedan indicar desvíos de recursos o mal manejo financiero.
         """)
         iforest = IsolationForest(contamination=0.05, random_state=42)
-        if not data_filtrada.empty:
+        
+        # Verifica si hay datos suficientes antes de entrenar el modelo
+        if not data_filtrada[["Gasto ($)"]].empty:
             data_filtrada.loc[:, "Anomalía"] = iforest.fit_predict(data_filtrada[["Gasto ($)"]])
             anomalías = data_filtrada[data_filtrada["Anomalía"] == -1]
             st.write("Transacciones sospechosas detectadas:", anomalías)
@@ -141,6 +143,8 @@ else:
                 title="Transacciones Sospechosas Detectadas"
             )
             st.plotly_chart(fig3, use_container_width=True)
+        else:
+            st.warning("No hay datos suficientes para ejecutar el modelo de IsolationForest.")
 
     # --- Pestaña 3: Clustering de Inventarios ---
     with tabs[2]:
@@ -149,12 +153,15 @@ else:
         **Objetivo:** Agrupar los gastos en categorías para identificar patrones que puedan indicar fugas de recursos.
         """)
         kmeans = KMeans(n_clusters=3, random_state=42)
-        data_filtrada.loc[:, "Cluster"] = kmeans.fit_predict(data_filtrada[["Gasto ($)"]])
-        fig4 = px.scatter(
-            data_filtrada, x="Mes", y="Gasto ($)", color="Cluster",
-            title="Clustering de Gasto por Inventarios"
-        )
-        st.plotly_chart(fig4, use_container_width=True)
+        if not data_filtrada[["Gasto ($)"]].empty:
+            data_filtrada.loc[:, "Cluster"] = kmeans.fit_predict(data_filtrada[["Gasto ($)"]])
+            fig4 = px.scatter(
+                data_filtrada, x="Mes", y="Gasto ($)", color="Cluster",
+                title="Clustering de Gasto por Inventarios"
+            )
+            st.plotly_chart(fig4, use_container_width=True)
+        else:
+            st.warning("No hay datos suficientes para ejecutar el modelo K-Means.")
 
     # --- Pestaña 4: Predicciones de Gasto ---
     with tabs[3]:
@@ -165,15 +172,18 @@ else:
         lr = LinearRegression()
         X = data_filtrada[["Mes"]]
         y = data_filtrada["Gasto ($)"]
-        lr.fit(X, y)
-        predicciones = lr.predict(X)
-        data_filtrada["Predicción ($)"] = predicciones
-        
-        fig5 = px.line(
-            data_filtrada, x="Mes", y="Predicción ($)", color="Categoría",
-            title="Predicciones de Gasto con Regresión Lineal"
-        )
-        st.plotly_chart(fig5, use_container_width=True)
+        if not X.empty:
+            lr.fit(X, y)
+            predicciones = lr.predict(X)
+            data_filtrada.loc[:, "Predicción ($)"] = predicciones
+            
+            fig5 = px.line(
+                data_filtrada, x="Mes", y="Predicción ($)", color="Categoría",
+                title="Predicciones de Gasto con Regresión Lineal"
+            )
+            st.plotly_chart(fig5, use_container_width=True)
+        else:
+            st.warning("No hay datos suficientes para entrenar el modelo de regresión lineal.")
 
     # --- Pestaña 5: XGBoost para Clasificación ---
     with tabs[4]:
@@ -181,12 +191,19 @@ else:
         st.markdown("""
         **Objetivo:** Utilizar XGBoost para clasificar gastos sospechosos según su categoría.
         """)
-        X_train, X_test, y_train, y_test = train_test_split(data_filtrada[["Mes", "Gasto ($)"]], data_filtrada["Categoría"], test_size=0.3, random_state=42)
-        xgb = XGBClassifier()
-        xgb.fit(X_train, y_train)
-        y_pred = xgb.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
-        st.write(f"Precisión del modelo XGBoost: {accuracy:.2f}")
+        if not data_filtrada[["Mes", "Gasto ($)"]].empty:
+            X_train, X_test, y_train, y_test = train_test_split(
+                data_filtrada[["Mes", "Gasto ($)"]], 
+                data_filtrada["Categoría"], 
+                test_size=0.3, random_state=42
+            )
+            xgb = XGBClassifier()
+            xgb.fit(X_train, y_train)
+            y_pred = xgb.predict(X_test)
+            accuracy = accuracy_score(y_test, y_pred)
+            st.write(f"Precisión del modelo XGBoost: {accuracy:.2f}")
+        else:
+            st.warning("No hay datos suficientes para entrenar el modelo XGBoost.")
 
     # --- Pestaña 6: PCA ---
     with tabs[5]:
@@ -195,12 +212,15 @@ else:
         **Objetivo:** Reducir la dimensionalidad de los datos para facilitar su interpretación.
         """)
         pca = PCA(n_components=2)
-        pca_data = pca.fit_transform(data_filtrada[["Mes", "Gasto ($)"]])
-        fig6 = px.scatter(
-            x=pca_data[:, 0], y=pca_data[:, 1], color=data_filtrada["Categoría"],
-            title="Reducción de Dimensiones con PCA"
-        )
-        st.plotly_chart(fig6, use_container_width=True)
+        if not data_filtrada[["Mes", "Gasto ($)"]].empty:
+            pca_data = pca.fit_transform(data_filtrada[["Mes", "Gasto ($)"]])
+            fig6 = px.scatter(
+                x=pca_data[:, 0], y=pca_data[:, 1], color=data_filtrada["Categoría"],
+                title="Reducción de Dimensiones con PCA"
+            )
+            st.plotly_chart(fig6, use_container_width=True)
+        else:
+            st.warning("No hay datos suficientes para ejecutar el PCA.")
 
     # --- Pestaña 7: Random Forest ---
     with tabs[6]:
@@ -209,7 +229,10 @@ else:
         **Objetivo:** Utilizar Random Forest para predecir valores de gasto y evaluar su precisión.
         """)
         rf = RandomForestRegressor(n_estimators=100, random_state=42)
-        rf.fit(X, y)
-        y_pred_rf = rf.predict(X)
-        mse = mean_squared_error(y, y_pred_rf)
-        st.write(f"Error cuadrático medio (MSE): {mse:.2f}")
+        if not X.empty:
+            rf.fit(X, y)
+            y_pred_rf = rf.predict(X)
+            mse = mean_squared_error(y, y_pred_rf)
+            st.write(f"Error cuadrático medio (MSE): {mse:.2f}")
+        else:
+            st.warning("No hay datos suficientes para entrenar el modelo Random Forest.")
