@@ -4,6 +4,5 @@ numpy>=1.23,<3
 scikit-learn==1.5.2
 plotly==5.24.1
 prophet==1.1
-seaborn==0.13.2
 pystan==2.19.1.1
-cython==0.29.32
+Cython>=0.29.36
