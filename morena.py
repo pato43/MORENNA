@@ -7,7 +7,7 @@ from sklearn.linear_model import LinearRegression
 
 # Configuración inicial
 st.set_page_config(
-    page_title="Dashboard de Recursos para Partidos Políticos",
+    page_title="Dashboard Partido del Trabajo",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -15,30 +15,36 @@ st.set_page_config(
 # Tema de colores
 st.markdown("""
 <style>
-    .css-18e3th9 { background-color: #1E1E1E; } /* Fondo oscuro */
+    .css-18e3th9 { background-color: #1E1E1E; }
     .block-container { padding: 1.5rem 2rem; }
     h1, h2, h3 { color: #E0E0E0; }
     .stTabs [data-baseweb="tab"] { 
-        background-color: #333333; /* Fondo de las pestañas */
-        color: #E0E0E0; /* Texto claro */
-        border: 1px solid #444444; /* Borde más visible */
-        border-radius: 5px; /* Bordes redondeados */
+        background-color: #333333;
+        color: #E0E0E0;
+        border: 1px solid #444444;
+        border-radius: 5px;
     }
     .stTabs [data-baseweb="tab"]:hover { 
-        background-color: #444444; /* Cambio de color al pasar el cursor */
+        background-color: #444444;
     }
     .stTabs [data-baseweb="tab"][aria-selected="true"] { 
-        background-color: #205375; /* Fondo activo */
-        color: #FFFFFF; /* Texto activo */
-        font-weight: bold; /* Texto en negrita */
+        background-color: #205375;
+        color: #FFFFFF;
+        font-weight: bold;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # Título principal
-st.title("🎛️ Dashboard de Análisis de Recursos")
-st.subheader("Monitoreo, proyección y detección de anomalías en recursos partidistas")
-st.markdown("**Nota:** Esta herramienta es una demostración y tiene fines ilustrativos.")
+st.title("🎛️ Dashboard del Partido del Trabajo")
+st.subheader("Monitoreo, proyección y análisis de recursos para el Partido del Trabajo")
+st.markdown("""
+**Este dashboard integra análisis de gastos, detección de anomalías y proyecciones de presupuesto. Además, ofrecemos los siguientes servicios:**
+
+- **Soporte técnico para comerciantes.**
+- **Consultoría en ciencia de datos y minería de procesos** para detectar desvíos de fondos.
+- **Educación y capacitación política** enfocada en valores cívicos, derechos humanos y liderazgo femenino.
+""")
 
 # Carga de datos simulados
 @st.cache_data
@@ -73,7 +79,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Análisis General", 
     "🔎 Anomalías", 
     "📈 Proyecciones", 
-    "📦 Inventarios"
+    "💡 Servicios Ofrecidos"
 ])
 
 # --- Pestaña 1: Análisis General ---
@@ -107,7 +113,7 @@ with tab1:
 with tab2:
     st.header("🔎 Detección de Anomalías en Gastos")
     st.markdown("""
-    Este análisis utiliza técnicas de machine learning para identificar gastos inusuales.
+    Este análisis utiliza técnicas de machine learning para identificar gastos inusuales. Además, ofrecemos minería de procesos para determinar causas de desvíos de fondos.
     """)
     iforest = IsolationForest(contamination=0.1, random_state=42)
     data_filtrada["Anomalía"] = iforest.fit_predict(data_filtrada[["Gasto ($)"]])
@@ -148,25 +154,24 @@ with tab3:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# --- Pestaña 4: Inventarios ---
+# --- Pestaña 4: Servicios Ofrecidos ---
 with tab4:
-    st.header("📦 Gestión de Inventarios")
+    st.header("💡 Servicios Ofrecidos al Partido del Trabajo")
     st.markdown("""
-    Monitoreo de inventarios de medicinas, alimentos y gastos operativos.
+    **Ofrecemos los siguientes servicios especializados para el Partido del Trabajo:**
+    - **Soporte técnico para comerciantes:** Soluciones tecnológicas para mejorar la gestión y operación.
+    - **Consultoría en ciencia de datos:** Análisis avanzado de datos para optimizar recursos.
+    - **Minería de procesos:** Identificación de problemas en el flujo de recursos y detección de desvíos de fondos.
+    - **Educación y capacitación política:** Promoción de valores cívicos, derechos humanos y liderazgo político.
     """)
-    inventarios = {
-        "Categoría": ["Medicinas", "Alimentos", "Gastos Operativos"],
-        "Disponible": [80, 120, 150],
-        "Proyectado (Mes Siguiente)": [60, 100, 140]
-    }
-    df_inv = pd.DataFrame(inventarios)
-    fig = px.bar(
-        df_inv, 
-        x="Categoría", 
-        y=["Disponible", "Proyectado (Mes Siguiente)"], 
-        barmode="group", 
-        title="Inventarios Actuales y Proyectados",
-        color_discrete_sequence=px.colors.sequential.Plasma
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    st.dataframe(df_inv, use_container_width=True)
+    st.subheader("Gastos en Actividades Ordinarias")
+    st.markdown("""
+    Incluyen salarios, rentas, gastos de estructura partidista y propaganda institucional, 
+    necesarios para el funcionamiento de actividades sectoriales, distritales, municipales, estatales o nacionales.
+    """)
+    st.subheader("Gastos en Actividades Específicas")
+    st.markdown("""
+    Enfocados en la educación y capacitación para promover la participación política, 
+    valores cívicos y respeto a derechos humanos. También incluye el desarrollo de liderazgo político de las mujeres, 
+    asignando al menos el 3% del financiamiento total a este rubro.
+    """)
