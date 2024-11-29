@@ -2,12 +2,16 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from sklearn.ensemble import IsolationForest
+from sklearn.ensemble import IsolationForest, RandomForestRegressor
 from sklearn.linear_model import LinearRegression
+from sklearn.decomposition import PCA
+from xgboost import XGBClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, mean_squared_error
 
 # Configuración inicial
 st.set_page_config(
-    page_title="Dashboard Partido del Trabajo",
+    page_title="Demo de Algoritmos de ML - Partido del Trabajo",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -36,14 +40,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Título principal
-st.title("🎛️ Dashboard del Partido del Trabajo")
-st.subheader("Monitoreo, proyección y análisis de recursos para el Partido del Trabajo")
+st.title("🎛️ Demo de Algoritmos de Machine Learning - Partido del Trabajo")
+st.subheader("Optimización de Recursos y Competitividad Electoral 2027")
 st.markdown("""
-**Este dashboard integra análisis de gastos, detección de anomalías y proyecciones de presupuesto. Además, ofrecemos los siguientes servicios:**
-
-- **Soporte técnico para comerciantes.**
-- **Consultoría en ciencia de datos y minería de procesos** para detectar desvíos de fondos.
-- **Educación y capacitación política** enfocada en valores cívicos, derechos humanos y liderazgo femenino.
+**Objetivo:** Presentar cómo los algoritmos avanzados de Machine Learning pueden identificar problemas financieros, mejorar la gestión de recursos y detectar anomalías para destinar el dinero recuperado a la competitividad electoral.
 """)
 
 # Carga de datos simulados
@@ -51,15 +51,14 @@ st.markdown("""
 def load_data():
     np.random.seed(42)
     categories = [
-        "Actividades Ordinarias", 
-        "Gastos de Proceso Electoral", 
-        "Actividades Específicas"
+        "Salarios", "Administración", "Gastos Médicos", 
+        "Limpieza", "Propaganda", "Capacitación"
     ]
     data = {
-        "Categoría": np.random.choice(categories, 300),
-        "Mes": np.random.choice(range(1, 13), 300),
-        "Gasto ($)": np.random.randint(10000, 50000, 300),
-        "Año": np.random.choice([2022, 2023, 2024], 300),
+        "Categoría": np.random.choice(categories, 500),
+        "Mes": np.random.choice(range(1, 13), 500),
+        "Gasto ($)": np.random.randint(5000, 60000, 500),
+        "Año": np.random.choice([2022, 2023, 2024], 500),
     }
     return pd.DataFrame(data)
 
@@ -74,104 +73,126 @@ with st.sidebar:
 # Filtrar datos
 data_filtrada = data[data["Categoría"].isin(filtro_categoria) & data["Año"].isin(filtro_año)]
 
-# Secciones principales
-tab1, tab2, tab3, tab4 = st.tabs([
+# Pestañas principales
+tabs = st.tabs([
     "📊 Análisis General", 
-    "🔎 Anomalías", 
-    "📈 Proyecciones", 
-    "💡 Servicios Ofrecidos"
+    "🔎 Transacciones Sospechosas (Isolation Forest)", 
+    "📦 Clustering de Inventarios (K-Means)", 
+    "📚 Predicciones de Gasto (Regresión Lineal)", 
+    "🌟 XGBoost para Clasificación", 
+    "🌐 PCA para Reducción de Dimensiones", 
+    "🌳 Random Forest para Predicción",
+    "📘 Teoría de Algoritmos"
 ])
 
 # --- Pestaña 1: Análisis General ---
-with tab1:
+with tabs[0]:
     st.header("📊 Análisis General de Recursos")
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.subheader("Distribución de Gastos por Categoría")
-        fig = px.bar(
-            data_filtrada.groupby("Categoría")["Gasto ($)"].sum().reset_index(), 
-            x="Categoría", 
-            y="Gasto ($)", 
-            color="Categoría",
-            title="Gastos Totales por Categoría",
-            color_discrete_sequence=px.colors.sequential.Blues
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    with col2:
-        st.subheader("Gasto Promedio por Año")
-        fig = px.box(
-            data_filtrada, 
-            x="Año", 
-            y="Gasto ($)", 
-            color="Año", 
-            title="Distribución de Gastos por Año",
-            color_discrete_sequence=px.colors.sequential.Teal
-        )
-        st.plotly_chart(fig, use_container_width=True)
+    col1, col2 = st.columns(2)
+    
+    # Gráfico de gasto por categoría
+    fig1 = px.bar(
+        data_filtrada.groupby("Categoría")["Gasto ($)"].sum().reset_index(),
+        x="Categoría", y="Gasto ($)", color="Categoría",
+        title="Gasto Total por Categoría"
+    )
+    col1.plotly_chart(fig1, use_container_width=True)
+    
+    # Gráfico de gasto mensual
+    fig2 = px.line(
+        data_filtrada.groupby("Mes")["Gasto ($)"].sum().reset_index(),
+        x="Mes", y="Gasto ($)", title="Gasto Mensual"
+    )
+    col2.plotly_chart(fig2, use_container_width=True)
 
-# --- Pestaña 2: Anomalías ---
-with tab2:
-    st.header("🔎 Detección de Anomalías en Gastos")
+# --- Pestaña 2: Transacciones Sospechosas ---
+with tabs[1]:
+    st.header("🔎 Transacciones Sospechosas (Isolation Forest)")
     st.markdown("""
-    Este análisis utiliza técnicas de machine learning para identificar gastos inusuales. Además, ofrecemos minería de procesos para determinar causas de desvíos de fondos.
+    **Objetivo:** Identificar transacciones inusuales que puedan indicar desvíos de recursos o mal manejo financiero.
     """)
-    iforest = IsolationForest(contamination=0.1, random_state=42)
-    data_filtrada["Anomalía"] = iforest.fit_predict(data_filtrada[["Gasto ($)"]])
+    # Aplicar Isolation Forest para detectar anomalías
+    iso_model = IsolationForest(contamination=0.05, random_state=42)
+    data_filtrada["Anomalía"] = iso_model.fit_predict(data_filtrada[["Gasto ($)"]])
     anomalías = data_filtrada[data_filtrada["Anomalía"] == -1]
-    fig = px.scatter(
-        data_filtrada, 
-        x="Mes", 
-        y="Gasto ($)", 
-        color="Anomalía", 
-        title="Gastos Anómalos Detectados",
-        color_discrete_sequence=["#636EFA", "#EF553B"],
-        labels={"Anomalía": "Tipo"}
+    
+    st.write("Transacciones sospechosas detectadas:", anomalías)
+    fig3 = px.scatter(
+        anomalías, x="Mes", y="Gasto ($)", color="Categoría",
+        title="Transacciones Sospechosas Detectadas"
     )
-    st.plotly_chart(fig, use_container_width=True)
-    if not anomalías.empty:
-        st.subheader("Detalles de las Anomalías")
-        st.dataframe(anomalías, use_container_width=True)
+    st.plotly_chart(fig3, use_container_width=True)
 
-# --- Pestaña 3: Proyecciones ---
-with tab3:
-    st.header("📈 Proyecciones Futuras")
-    st.markdown("Proyección de gastos basados en tendencias históricas.")
-    modelo = LinearRegression()
-    proyeccion = data_filtrada.groupby(["Año", "Categoría"])["Gasto ($)"].sum().reset_index()
-    for categoria in proyeccion["Categoría"].unique():
-        df_cat = proyeccion[proyeccion["Categoría"] == categoria]
-        X = df_cat["Año"].values.reshape(-1, 1)
-        y = df_cat["Gasto ($)"]
-        modelo.fit(X, y)
-        proyeccion.loc[proyeccion["Categoría"] == categoria, "Proyección ($)"] = modelo.predict(X)
-    fig = px.line(
-        proyeccion, 
-        x="Año", 
-        y="Proyección ($)", 
-        color="Categoría", 
-        title="Proyecciones de Gasto por Categoría",
-        color_discrete_sequence=px.colors.sequential.Viridis
+# --- Pestaña 3: Clustering de Inventarios ---
+with tabs[2]:
+    st.header("📦 Clustering de Inventarios (K-Means)")
+    st.markdown("""
+    **Objetivo:** Agrupar los gastos en categorías para identificar patrones que puedan indicar fugas de recursos.
+    """)
+    from sklearn.cluster import KMeans
+    kmeans = KMeans(n_clusters=3, random_state=42)
+    data_filtrada["Cluster"] = kmeans.fit_predict(data_filtrada[["Gasto ($)"]])
+    
+    fig4 = px.scatter(
+        data_filtrada, x="Mes", y="Gasto ($)", color="Cluster",
+        title="Clustering de Gasto por Inventarios"
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig4, use_container_width=True)
 
-# --- Pestaña 4: Servicios Ofrecidos ---
-with tab4:
-    st.header("💡 Servicios Ofrecidos al Partido del Trabajo")
+# --- Pestaña 4: Predicciones de Gasto ---
+with tabs[3]:
+    st.header("📚 Predicciones de Gasto (Regresión Lineal)")
     st.markdown("""
-    **Ofrecemos los siguientes servicios especializados para el Partido del Trabajo:**
-    - **Soporte técnico para comerciantes:** Soluciones tecnológicas para mejorar la gestión y operación.
-    - **Consultoría en ciencia de datos:** Análisis avanzado de datos para optimizar recursos.
-    - **Minería de procesos:** Identificación de problemas en el flujo de recursos y detección de desvíos de fondos.
-    - **Educación y capacitación política:** Promoción de valores cívicos, derechos humanos y liderazgo político.
+    **Objetivo:** Predecir tendencias futuras de gasto basándose en datos históricos.
     """)
-    st.subheader("Gastos en Actividades Ordinarias")
+    lr = LinearRegression()
+    X = data_filtrada[["Mes"]]
+    y = data_filtrada["Gasto ($)"]
+    lr.fit(X, y)
+    predicciones = lr.predict(X)
+    data_filtrada["Predicción ($)"] = predicciones
+    
+    fig5 = px.line(
+        data_filtrada, x="Mes", y="Predicción ($)", color="Categoría",
+        title="Predicciones de Gasto con Regresión Lineal"
+    )
+    st.plotly_chart(fig5, use_container_width=True)
+
+# --- Pestaña 5: XGBoost para Clasificación ---
+with tabs[4]:
+    st.header("🌟 XGBoost para Clasificación")
     st.markdown("""
-    Incluyen salarios, rentas, gastos de estructura partidista y propaganda institucional, 
-    necesarios para el funcionamiento de actividades sectoriales, distritales, municipales, estatales o nacionales.
+    **Objetivo:** Utilizar XGBoost para clasificar gastos sospechosos según su categoría.
     """)
-    st.subheader("Gastos en Actividades Específicas")
+    X_train, X_test, y_train, y_test = train_test_split(data_filtrada[["Mes", "Gasto ($)"]], data_filtrada["Categoría"], test_size=0.3, random_state=42)
+    xgb = XGBClassifier()
+    xgb.fit(X_train, y_train)
+    y_pred = xgb.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    st.write(f"Precisión del modelo XGBoost: {accuracy:.2f}")
+
+# --- Pestaña 6: PCA ---
+with tabs[5]:
+    st.header("🌐 Análisis de Componentes Principales (PCA)")
     st.markdown("""
-    Enfocados en la educación y capacitación para promover la participación política, 
-    valores cívicos y respeto a derechos humanos. También incluye el desarrollo de liderazgo político de las mujeres, 
-    asignando al menos el 3% del financiamiento total a este rubro.
+    **Objetivo:** Reducir la dimensionalidad de los datos para facilitar su interpretación.
     """)
+    pca = PCA(n_components=2)
+    pca_data = pca.fit_transform(data_filtrada[["Mes", "Gasto ($)"]])
+    fig6 = px.scatter(
+        x=pca_data[:, 0], y=pca_data[:, 1], color=data_filtrada["Categoría"],
+        title="Reducción de Dimensiones con PCA"
+    )
+    st.plotly_chart(fig6, use_container_width=True)
+
+# --- Pestaña 7: Random Forest ---
+with tabs[6]:
+    st.header("🌳 Random Forest para Predicción")
+    st.markdown("""
+    **Objetivo:** Utilizar Random Forest para predecir valores de gasto y evaluar su precisión.
+    """)
+    rf = RandomForestRegressor(n_estimators=100, random_state=42)
+    rf.fit(X, y)
+    y_pred_rf = rf.predict(X)
+    mse = mean_squared_error(y, y_pred_rf)
+    st.write(f"Error cuadrático medio (MSE): {mse:.2f}")
