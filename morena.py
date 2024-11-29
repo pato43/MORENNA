@@ -15,10 +15,23 @@ st.set_page_config(
 # Tema de colores
 st.markdown("""
 <style>
-    .css-18e3th9 { background-color: #f9f9f9; } /* Fondo claro */
+    .css-18e3th9 { background-color: #1E1E1E; } /* Fondo oscuro */
     .block-container { padding: 1.5rem 2rem; }
-    h1, h2, h3 { color: #205375; }
-    .stTabs [data-baseweb="tab"] { background-color: #cce7f7; }
+    h1, h2, h3 { color: #E0E0E0; }
+    .stTabs [data-baseweb="tab"] { 
+        background-color: #333333; /* Fondo de las pestañas */
+        color: #E0E0E0; /* Texto claro */
+        border: 1px solid #444444; /* Borde más visible */
+        border-radius: 5px; /* Bordes redondeados */
+    }
+    .stTabs [data-baseweb="tab"]:hover { 
+        background-color: #444444; /* Cambio de color al pasar el cursor */
+    }
+    .stTabs [data-baseweb="tab"][aria-selected="true"] { 
+        background-color: #205375; /* Fondo activo */
+        color: #FFFFFF; /* Texto activo */
+        font-weight: bold; /* Texto en negrita */
+    }
 </style>
 """, unsafe_allow_html=True)
 
