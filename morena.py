@@ -6,13 +6,13 @@ from sklearn.ensemble import IsolationForest, RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
-from xgboost import XGBClassifier
+from catboost import CatBoostClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, mean_squared_error
 
 # Configuración inicial
 st.set_page_config(
-    page_title="Demo de Dashboard para Optimización de Recursos",
+    page_title="Dashboard para Optimización de Recursos",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -44,10 +44,8 @@ st.markdown("""
 @st.cache_data
 def load_data():
     np.random.seed(42)
-    categories = [
-        "Salarios", "Administración", "Gastos Médicos", 
-        "Limpieza", "Propaganda", "Capacitación"
-    ]
+    categories = ["Salarios", "Administración", "Gastos Médicos", 
+                  "Limpieza", "Propaganda", "Capacitación"]
     months = np.arange(1, 13)
     fluctuation = np.random.normal(scale=5000, size=500)
     data = {
@@ -67,7 +65,7 @@ with st.sidebar:
     filtro_año = st.multiselect("Seleccionar Años", data["Año"].unique(), default=data["Año"].unique())
 
 # Filtrar datos
-data_filtrada = data.loc[data["Categoría"].isin(filtro_categoria) & data["Año"].isin(filtro_año)]
+data_filtrada = data.loc[data["Categoría"].isin(filtro_categoria) & data["Año"].isin(filtro_año)].copy()
 
 # Verificar si hay datos filtrados
 if data_filtrada.empty:
@@ -79,7 +77,7 @@ else:
         "🔎 Transacciones Sospechosas", 
         "📦 Clustering de Inventarios", 
         "📚 Predicciones de Gasto", 
-        "🌟 XGBoost para Clasificación", 
+        "🌟 CatBoost para Clasificación", 
         "🌐 PCA para Reducción de Dimensiones", 
         "🌳 Random Forest para Predicción"
     ])
@@ -156,47 +154,19 @@ else:
         else:
             st.warning("No hay datos suficientes para entrenar el modelo.")
 
-    # --- Pestaña 5: XGBoost para Clasificación ---
+    # --- Pestaña 5: CatBoost para Clasificación ---
     with tabs[4]:
-        st.header("🌟 XGBoost para Clasificación")
+        st.header("🌟 CatBoost para Clasificación")
         if not data_filtrada.empty:
             X_train, X_test, y_train, y_test = train_test_split(
                 data_filtrada[["Mes", "Gasto ($)"]], 
                 data_filtrada["Categoría"], 
                 test_size=0.3, random_state=42
             )
-            xgb = XGBClassifier()
-            xgb.fit(X_train, y_train)
-            y_pred = xgb.predict(X_test)
+            cb = CatBoostClassifier(iterations=100, verbose=0)
+            cb.fit(X_train, y_train)
+            y_pred = cb.predict(X_test)
             accuracy = accuracy_score(y_test, y_pred)
-            st.write(f"Precisión del modelo XGBoost: {accuracy:.2f}")
+            st.write(f"Precisión del modelo CatBoost: {accuracy:.2f}")
         else:
             st.warning("No hay datos suficientes para entrenar el modelo.")
-
-    # --- Pestaña 6: PCA ---
-    with tabs[5]:
-        st.header("🌐 Análisis de Componentes Principales (PCA)")
-        pca = PCA(n_components=2)
-        if not data_filtrada.empty:
-            pca_data = pca.fit_transform(data_filtrada[["Mes", "Gasto ($)"]])
-            fig6 = px.scatter(
-                x=pca_data[:, 0], y=pca_data[:, 1], color=data_filtrada["Categoría"],
-                title="Reducción de Dimensiones con PCA"
-            )
-            st.plotly_chart(fig6, use_container_width=True)
-        else:
-            st.warning("No hay datos suficientes para ejecutar el PCA.")
-
-    # --- Pestaña 7: Random Forest ---
-    with tabs[6]:
-        st.header("🌳 Random Forest para Predicción")
-        rf = RandomForestRegressor(n_estimators=100, random_state=42)
-        if not data_filtrada.empty:
-            X = data_filtrada[["Mes"]]
-            y = data_filtrada["Gasto ($)"]
-            rf.fit(X, y)
-            y_pred_rf = rf.predict(X)
-            mse = mean_squared_error(y, y_pred_rf)
-            st.write(f"Error cuadrático medio (MSE): {mse:.2f}")
-        else:
-            st.warning("No hay datos suficientes para entrenar el modelo Random Forest.")
