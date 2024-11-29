@@ -1,3 +1,10 @@
+from prophet import Prophet
+import cmdstanpy
+
+# Configuración del backend
+cmdstanpy.install_cmdstan(quiet=True)
+
+
 import streamlit as st
 import pandas as pd
 import numpy as np
