@@ -1,98 +1,124 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
-import seaborn as sns
 import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
 from sklearn.ensemble import IsolationForest
-from sklearn.cluster import DBSCAN
-from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
 
-# Configuración de la página
-st.set_page_config(
-    page_title="Demo de Análisis de Recursos - Partido Politico",
-    page_icon="💰",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# Configuración inicial
+st.set_page_config(page_title="Análisis de Recursos para Partidos Políticos", layout="wide")
 
-# Título y descripción
-st.title("Demo de Análisis de Recursos y Optimización - Partido Politico 💼")
+# Título principal
+st.title("Análisis Integral de Recursos para Partidos Políticos")
 st.markdown("""
-Este dashboard es una **demo** interactiva para visualizar y analizar el gasto de diferentes áreas del partido. 
-Incluye análisis de detección de anomalías y sistemas de optimización basados en ciencia de datos y machine learning.
+**Esta es una herramienta de demostración** para el análisis, monitoreo y gestión de recursos económicos, operativos, inventarios y categorías de gastos. 
+El sistema permite evaluar patrones de uso, detectar anomalías y realizar proyecciones para una mejor toma de decisiones.
 """)
 
-# Cargar datos (simulados)
-np.random.seed(42)
-data = pd.DataFrame({
-    "Área": np.random.choice(["Administración", "Campañas", "Logística", "Publicidad", "Operaciones", "Consultorías"], 100),
-    "Monto (millones)": np.random.uniform(1, 100, 100),
-    "Mes": np.random.choice(["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio"], 100),
-    "Año": np.random.choice([2023, 2024], 100),
-    "Instancia": np.random.choice(["Nacional", "Regional", "Estatal"], 100)
-})
+# Carga de datos simulados
+@st.cache
+def load_data():
+    np.random.seed(42)
+    categories = [
+        "Actividades Ordinarias", 
+        "Gastos de Proceso Electoral", 
+        "Actividades Específicas"
+    ]
+    data = {
+        "Categoría": np.random.choice(categories, 300),
+        "Mes": np.random.choice(range(1, 13), 300),
+        "Gasto ($)": np.random.randint(10000, 50000, 300),
+        "Año": np.random.choice([2022, 2023, 2024], 300),
+    }
+    return pd.DataFrame(data)
 
-# Sidebar para filtros
-st.sidebar.header("Filtros")
-selected_area = st.sidebar.multiselect("Selecciona Área(s):", options=data["Área"].unique(), default=data["Área"].unique())
-selected_year = st.sidebar.selectbox("Selecciona Año:", options=data["Año"].unique())
-selected_instance = st.sidebar.multiselect("Selecciona Instancia(s):", options=data["Instancia"].unique(), default=data["Instancia"].unique())
+data = load_data()
 
-filtered_data = data[
-    (data["Área"].isin(selected_area)) &
-    (data["Año"] == selected_year) &
-    (data["Instancia"].isin(selected_instance))
-]
+# Pestañas principales
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🔎 Análisis General", 
+    "📊 Anomalías", 
+    "📈 Proyecciones", 
+    "📦 Inventarios", 
+    "📜 Categorías de Gastos"
+])
 
-# Gráficos principales
-st.markdown("### Análisis General de Gasto por Área")
-fig_area = px.bar(filtered_data, x="Área", y="Monto (millones)", color="Área", title="Gasto por Área", barmode="group")
-st.plotly_chart(fig_area, use_container_width=True)
+# --- Pestaña 1: Análisis General ---
+with tab1:
+    st.header("Análisis General de Recursos")
+    st.markdown("Visualización de gastos por áreas e instancias.")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        category_gastos = data.groupby("Categoría")["Gasto ($)"].sum().reset_index()
+        fig = px.bar(category_gastos, x="Categoría", y="Gasto ($)", title="Gasto Total por Categoría")
+        st.plotly_chart(fig)
+    
+    with col2:
+        gasto_mes = data.groupby("Mes")["Gasto ($)"].sum().reset_index()
+        fig = px.line(gasto_mes, x="Mes", y="Gasto ($)", title="Tendencia Mensual de Gastos")
+        st.plotly_chart(fig)
 
-st.markdown("### Gasto Total por Mes")
-fig_month = px.line(filtered_data, x="Mes", y="Monto (millones)", color="Instancia", title="Gasto por Mes e Instancia", markers=True)
-st.plotly_chart(fig_month, use_container_width=True)
+# --- Pestaña 2: Anomalías ---
+with tab2:
+    st.header("Detección de Anomalías en los Gastos")
+    st.markdown("Identificación de gastos atípicos utilizando machine learning.")
+    
+    iforest = IsolationForest(contamination=0.1, random_state=42)
+    data["Anomalía"] = iforest.fit_predict(data[["Gasto ($)"]])
+    
+    anomalías = data[data["Anomalía"] == -1]
+    fig = px.scatter(data, x="Mes", y="Gasto ($)", color="Anomalía", title="Anomalías en los Gastos")
+    st.plotly_chart(fig)
+    st.dataframe(anomalías, use_container_width=True)
 
-# Detección de Anomalías
-st.markdown("### Detección de Anomalías en los Gastos")
+# --- Pestaña 3: Proyecciones ---
+with tab3:
+    st.header("Proyecciones de Gastos Futuros")
+    st.markdown("Proyección del uso de recursos en categorías clave.")
+    
+    proyeccion = data.groupby(["Año", "Categoría"])["Gasto ($)"].sum().reset_index()
+    modelo = LinearRegression()
+    for categoria in proyeccion["Categoría"].unique():
+        df_cat = proyeccion[proyeccion["Categoría"] == categoria]
+        X = df_cat["Año"].values.reshape(-1, 1)
+        y = df_cat["Gasto ($)"]
+        modelo.fit(X, y)
+        proyeccion.loc[proyeccion["Categoría"] == categoria, "Proyección ($)"] = modelo.predict(X)
+    
+    fig = px.line(proyeccion, x="Año", y="Proyección ($)", color="Categoría", title="Proyección de Gastos por Categoría")
+    st.plotly_chart(fig)
 
-# Preparar datos para el modelo
-scaler = StandardScaler()
-scaled_data = scaler.fit_transform(filtered_data[["Monto (millones)"]])
+# --- Pestaña 4: Inventarios ---
+with tab4:
+    st.header("Gestión Eficiente de Inventarios")
+    st.markdown("Visualización de inventarios de medicinas, alimentos y gastos operativos.")
+    
+    inventarios = {
+        "Categoría": ["Medicinas", "Alimentos", "Gastos Operativos"],
+        "Disponible": [80, 120, 150],
+        "Proyectado (Mes Siguiente)": [60, 100, 140]
+    }
+    df_inv = pd.DataFrame(inventarios)
+    fig = px.bar(df_inv, x="Categoría", y=["Disponible", "Proyectado (Mes Siguiente)"], barmode="group", title="Inventarios Actuales y Proyectados")
+    st.plotly_chart(fig)
+    st.dataframe(df_inv, use_container_width=True)
 
-# Isolation Forest
-iso_forest = IsolationForest(contamination=0.1, random_state=42)
-filtered_data["Anomalía"] = iso_forest.fit_predict(scaled_data)
-anomalies = filtered_data[filtered_data["Anomalía"] == -1]
-
-# Mostrar anomalías en gráfico
-fig_anomalies = px.scatter(filtered_data, x="Monto (millones)", y="Área", color="Anomalía",
-                           title="Detección de Anomalías en Gastos",
-                           color_discrete_map={-1: "red", 1: "blue"})
-st.plotly_chart(fig_anomalies, use_container_width=True)
-
-# Clusterización (DBSCAN)
-st.markdown("### Agrupación de Gastos por DBSCAN")
-dbscan = DBSCAN(eps=1, min_samples=5)
-filtered_data["Cluster"] = dbscan.fit_predict(scaled_data)
-
-fig_clusters = px.scatter(filtered_data, x="Monto (millones)", y="Área", color="Cluster",
-                           title="Clusterización de Gastos",
-                           color_continuous_scale="Viridis")
-st.plotly_chart(fig_clusters, use_container_width=True)
-
-# Dashboard de simulación
-st.markdown("### Simulación y Proyecciones de Gasto")
-projection_multiplier = st.slider("Ajuste de Incremento de Gasto (%)", min_value=0, max_value=100, value=10)
-filtered_data["Proyección"] = filtered_data["Monto (millones)"] * (1 + projection_multiplier / 100)
-
-fig_projection = px.area(filtered_data, x="Mes", y="Proyección", color="Área",
-                         title=f"Proyección de Gasto con Incremento del {projection_multiplier}%")
-st.plotly_chart(fig_projection, use_container_width=True)
-
-# Descripciones adicionales
-st.markdown("""
-**Nota:** Esta demo utiliza datos simulados. En un entorno real, las proyecciones y modelos se ajustan con datos reales y criterios definidos 
-por expertos en gestión financiera y analistas de datos.
-""")
+# --- Pestaña 5: Categorías de Gastos ---
+with tab5:
+    st.header("Análisis Detallado por Categorías de Gastos")
+    st.markdown("""
+    - **Actividades Ordinarias:** Incluyen salarios, rentas, gastos de estructura partidista y propaganda institucional.
+    - **Gastos de Proceso Electoral:** Propaganda electoral, publicidad, eventos públicos, y producción de mensajes.
+    - **Actividades Específicas:** Promoción de participación política, valores cívicos y derechos humanos, con énfasis en liderazgo femenino.
+    """)
+    
+    fig = px.sunburst(
+        data, 
+        path=["Categoría", "Mes"], 
+        values="Gasto ($)", 
+        title="Distribución de Gastos por Categoría y Mes"
+    )
+    st.plotly_chart(fig)
