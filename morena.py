@@ -47,23 +47,7 @@ st.markdown("""
 **Objetivo:** Este dashboard permite detectar anomalías, predecir tendencias y optimizar recursos. Diseñado para reducir fugas de dinero, identificar patrones financieros y maximizar el impacto de los recursos en campañas electorales.
 """)
 
-# Casos exitosos
-st.markdown("""
-### 🌍 Casos Exitosos en Otros Países
-- **Brasil:** Uso de Machine Learning para monitorear gastos públicos, logrando un ahorro anual de $150 millones de dólares mediante la detección de corrupción en contratos gubernamentales.
-- **India:** Implementación de dashboards de gasto público, reduciendo en un 35% los tiempos de procesamiento presupuestario y mejorando la transparencia.
-- **Canadá:** Aplicación de herramientas analíticas para predecir desviaciones en proyectos de infraestructura, evitando pérdidas superiores a $50 millones de dólares.
-""")
-
-# Propuesta de valor
-st.markdown("""
-### 💰 Ganancias Potenciales al Implementar Este Sistema
-1. **Reducción de Pérdidas:** Con una detección oportuna de fugas de dinero, las instituciones pueden ahorrar entre un 15% y 30% de su presupuesto anual.
-2. **Mayor Transparencia:** La automatización y visualización transparente aumentan la confianza de los votantes.
-3. **Eficiencia Comercial:** Este sistema puede comercializarse a partidos políticos, ONGs e instituciones gubernamentales a un costo estimado de $50,000 a $100,000 USD por implementación, generando ingresos recurrentes por mantenimiento.
-""")
-
-# Carga de datos simulados
+# Función para cargar datos
 @st.cache_data
 def load_data():
     np.random.seed(42)
@@ -88,7 +72,7 @@ with st.sidebar:
     filtro_año = st.multiselect("Seleccionar Años", data["Año"].unique(), default=data["Año"].unique())
 
 # Filtrar datos
-data_filtrada = data[data["Categoría"].isin(filtro_categoria) & data["Año"].isin(filtro_año)]
+data_filtrada = data.loc[data["Categoría"].isin(filtro_categoria) & data["Año"].isin(filtro_año)]
 
 # Verificar si hay datos filtrados
 if data_filtrada.empty:
@@ -134,8 +118,8 @@ else:
         iforest = IsolationForest(contamination=0.05, random_state=42)
         
         # Verifica si hay datos suficientes antes de entrenar el modelo
-        if not data_filtrada[["Gasto ($)"]].empty:
-            data_filtrada.loc[:, "Anomalía"] = iforest.fit_predict(data_filtrada[["Gasto ($)"]])
+        if not data_filtrada.empty:
+            data_filtrada["Anomalía"] = iforest.fit_predict(data_filtrada[["Gasto ($)"]])
             anomalías = data_filtrada[data_filtrada["Anomalía"] == -1]
             st.write("Transacciones sospechosas detectadas:", anomalías)
             fig3 = px.scatter(
@@ -153,8 +137,8 @@ else:
         **Objetivo:** Agrupar los gastos en categorías para identificar patrones que puedan indicar fugas de recursos.
         """)
         kmeans = KMeans(n_clusters=3, random_state=42)
-        if not data_filtrada[["Gasto ($)"]].empty:
-            data_filtrada.loc[:, "Cluster"] = kmeans.fit_predict(data_filtrada[["Gasto ($)"]])
+        if not data_filtrada.empty:
+            data_filtrada["Cluster"] = kmeans.fit_predict(data_filtrada[["Gasto ($)"]])
             fig4 = px.scatter(
                 data_filtrada, x="Mes", y="Gasto ($)", color="Cluster",
                 title="Clustering de Gasto por Inventarios"
@@ -175,7 +159,7 @@ else:
         if not X.empty:
             lr.fit(X, y)
             predicciones = lr.predict(X)
-            data_filtrada.loc[:, "Predicción ($)"] = predicciones
+            data_filtrada["Predicción ($)"] = predicciones
             
             fig5 = px.line(
                 data_filtrada, x="Mes", y="Predicción ($)", color="Categoría",
