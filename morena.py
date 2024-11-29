@@ -132,15 +132,15 @@ else:
         **Objetivo:** Identificar transacciones inusuales que puedan indicar desvíos de recursos o mal manejo financiero.
         """)
         iforest = IsolationForest(contamination=0.05, random_state=42)
-        data_filtrada["Anomalía"] = iforest.fit_predict(data_filtrada[["Gasto ($)"]])
-        anomalías = data_filtrada[data_filtrada["Anomalía"] == -1]
-        
-        st.write("Transacciones sospechosas detectadas:", anomalías)
-        fig3 = px.scatter(
-            anomalías, x="Mes", y="Gasto ($)", color="Categoría",
-            title="Transacciones Sospechosas Detectadas"
-        )
-        st.plotly_chart(fig3, use_container_width=True)
+        if not data_filtrada.empty:
+            data_filtrada.loc[:, "Anomalía"] = iforest.fit_predict(data_filtrada[["Gasto ($)"]])
+            anomalías = data_filtrada[data_filtrada["Anomalía"] == -1]
+            st.write("Transacciones sospechosas detectadas:", anomalías)
+            fig3 = px.scatter(
+                anomalías, x="Mes", y="Gasto ($)", color="Categoría",
+                title="Transacciones Sospechosas Detectadas"
+            )
+            st.plotly_chart(fig3, use_container_width=True)
 
     # --- Pestaña 3: Clustering de Inventarios ---
     with tabs[2]:
@@ -149,7 +149,7 @@ else:
         **Objetivo:** Agrupar los gastos en categorías para identificar patrones que puedan indicar fugas de recursos.
         """)
         kmeans = KMeans(n_clusters=3, random_state=42)
-        data_filtrada["Cluster"] = kmeans.fit_predict(data_filtrada[["Gasto ($)"]])
+        data_filtrada.loc[:, "Cluster"] = kmeans.fit_predict(data_filtrada[["Gasto ($)"]])
         fig4 = px.scatter(
             data_filtrada, x="Mes", y="Gasto ($)", color="Cluster",
             title="Clustering de Gasto por Inventarios"
