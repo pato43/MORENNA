@@ -10,16 +10,16 @@ from sklearn.preprocessing import StandardScaler
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Demo de Análisis de Recursos - MORENA",
+    page_title="Demo de Análisis de Recursos - Partido Politico",
     page_icon="💰",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # Título y descripción
-st.title("Demo de Análisis de Recursos y Optimización - MORENA 💼")
+st.title("Demo de Análisis de Recursos y Optimización - Partido Politico 💼")
 st.markdown("""
-Este dashboard es una **demo** interactiva para visualizar y analizar el gasto de diferentes áreas del partido MORENA. 
+Este dashboard es una **demo** interactiva para visualizar y analizar el gasto de diferentes áreas del partido. 
 Incluye análisis de detección de anomalías y sistemas de optimización basados en ciencia de datos y machine learning.
 """)
 
